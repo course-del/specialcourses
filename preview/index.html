@@ -220,6 +220,19 @@
       const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
       useEffect(() => {
+        // 過渡期：同一網域可直接讀取舊版 localStorage，讓既有課程先完整出現在預覽頁。
+        const saved = localStorage.getItem('ntpu_courses_local_v5');
+        if (saved) {
+          try {
+            const legacyCourses = JSON.parse(saved);
+            if (Array.isArray(legacyCourses) && legacyCourses.length) {
+              setCourses(legacyCourses);
+              setSiteMeta({ updatedAt: '2026-10-03', source: '舊版已匯出課程資料（遷移預覽）' });
+              setLoading(false);
+              return;
+            }
+          } catch (e) {}
+        }
         fetch('./courses.json', { cache: 'no-store' })
           .then(res => { if (!res.ok) throw new Error('課程資料載入失敗'); return res.json(); })
           .then(data => {
