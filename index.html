@@ -208,251 +208,126 @@
     ];
 
     function App() {
-      const [courses, setCourses] = useState(() => {
-        const saved = localStorage.getItem('ntpu_courses_local_v5');
-        return saved ? JSON.parse(saved) : INITIAL_COURSES;
-      });
-
+      const [courses, setCourses] = useState([]);
+      const [siteMeta, setSiteMeta] = useState({ updatedAt: '', source: '國立臺北大學教務處' });
+      const [loading, setLoading] = useState(true);
+      const [loadError, setLoadError] = useState('');
       const [searchQuery, setSearchQuery] = useState('');
       const [filterTheme, setFilterTheme] = useState('全部主軸');
       const [filterDept, setFilterDept] = useState('');
       const [filterType, setFilterType] = useState('全部');
+      const [filterSemester, setFilterSemester] = useState('全部學期');
+      const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-      const [isAdmin, setIsAdmin] = useState(false);
-      const [showLoginModal, setShowLoginModal] = useState(false);
-      const [adminPassword, setAdminPassword] = useState('');
-      const [loginError, setLoginError] = useState('');
-      const [showFormModal, setShowFormModal] = useState(false);
-      const [editingCourse, setEditingCourse] = useState(null);
+      useEffect(() => {
+        fetch('./courses.json', { cache: 'no-store' })
+          .then(res => { if (!res.ok) throw new Error('課程資料載入失敗'); return res.json(); })
+          .then(data => {
+            setCourses(Array.isArray(data) ? data : (data.courses || []));
+            if (!Array.isArray(data)) setSiteMeta({ updatedAt: data.updatedAt || '', source: data.source || '國立臺北大學教務處' });
+          })
+          .catch(() => setLoadError('目前無法載入課程資料，請稍後再試。'))
+          .finally(() => setLoading(false));
+      }, []);
 
-      const saveToLocal = (newCourses) => {
-        setCourses(newCourses);
-        localStorage.setItem('ntpu_courses_local_v5', JSON.stringify(newCourses));
+      const filteredCourses = useMemo(() => courses.filter(course => {
+        const matchTheme = filterTheme === '全部主軸' || course.theme === filterTheme;
+        const matchDept = filterDept === '' || course.dept === filterDept;
+        const matchType = filterType === '全部' || course.type === filterType;
+        const matchSemester = filterSemester === '全部學期' || course.semester === filterSemester;
+        const tags = Array.isArray(course.tags) ? course.tags.join(' ') : (course.tags || '');
+        const target = [course.name, course.teacher, course.tags, tags, course.desc, course.dept, course.semester, course.theme].filter(Boolean).join(' ').toLowerCase();
+        return matchTheme && matchDept && matchType && matchSemester && (!searchQuery || target.includes(searchQuery.toLowerCase()));
+      }), [courses, filterTheme, filterDept, filterType, filterSemester, searchQuery]);
+
+      const departments = useMemo(() => ['全部單位', ...Array.from(new Set(courses.map(c => c.dept).filter(Boolean))).sort()], [courses]);
+      const semesters = useMemo(() => ['全部學期', ...Array.from(new Set(courses.map(c => c.semester).filter(Boolean))).sort().reverse()], [courses]);
+
+      const clearFilters = () => {
+        setSearchQuery(''); setFilterTheme('全部主軸'); setFilterDept(''); setFilterType('全部'); setFilterSemester('全部學期');
       };
 
-      const filteredCourses = useMemo(() => {
-        return courses.filter(course => {
-          const matchTheme = filterTheme === '全部主軸' || course.theme === filterTheme;
-          const matchDept = filterDept === '' || (course.dept && course.dept.includes(filterDept));
-          const matchType = filterType === '全部' || course.type === filterType;
-          const searchTarget = `${course.name} ${course.teacher} ${course.tags} ${course.desc}`.toLowerCase();
-          const matchSearch = searchQuery === '' || searchTarget.includes(searchQuery.toLowerCase());
-          return matchTheme && matchDept && matchType && matchSearch;
-        });
-      }, [courses, filterTheme, filterDept, filterType, searchQuery]);
-
-      const departments = useMemo(() => {
-        const depts = new Set(courses.map(c => c.dept).filter(Boolean));
-        return ['全部單位', ...Array.from(depts)];
-      }, [courses]);
-
-      const handleSaveCourse = (courseData) => {
-        if (editingCourse && editingCourse.id) {
-          const updated = courses.map(c => c.id === editingCourse.id ? { ...courseData, id: c.id } : c);
-          saveToLocal(updated);
-        } else {
-          const newCourse = { ...courseData, id: Date.now().toString() };
-          saveToLocal([newCourse, ...courses]);
-        }
-        setShowFormModal(false);
-        setEditingCourse(null);
-      };
-
-      const handleDeleteCourse = (id) => {
-        if (window.confirm('確定要刪除這筆課程資料嗎？')) {
-          const updated = courses.filter(c => c.id !== id);
-          saveToLocal(updated);
-        }
-      };
-
-      const handleAdminLogin = (e) => {
-        e.preventDefault();
-        if (adminPassword === 'admin123') {
-          setIsAdmin(true);
-          setShowLoginModal(false);
-          setAdminPassword('');
-          setLoginError('');
-        } else {
-          setLoginError('密碼錯誤 (請輸入 admin123)');
-        }
-      };
+      const FilterPanel = () => (
+        <div className="bg-white/80 backdrop-blur-xl p-5 sm:p-6 rounded-3xl shadow-sm border border-white">
+          <div className="flex items-center justify-between mb-5 pb-3 border-b border-slate-200/50">
+            <h2 className="text-lg font-bold text-slate-800">探索課程</h2>
+            <button onClick={clearFilters} className="text-xs font-bold text-purple-600 hover:text-purple-800">清除篩選</button>
+          </div>
+          <input type="search" aria-label="搜尋課程" placeholder="搜尋課名、教師、單位、標籤..." value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-3 mb-5 bg-white border-0 rounded-2xl ring-1 ring-slate-200 focus:ring-2 focus:ring-purple-400 outline-none text-sm shadow-sm" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-1 gap-3 mb-5">
+            <label className="text-xs font-semibold text-slate-500">學期
+              <select value={filterSemester} onChange={e=>setFilterSemester(e.target.value)} className="mt-1.5 w-full p-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm">
+                {semesters.map(v=><option key={v}>{v}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-slate-500">開課單位
+              <select value={filterDept || '全部單位'} onChange={e=>setFilterDept(e.target.value==='全部單位'?'':e.target.value)} className="mt-1.5 w-full p-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm">
+                {departments.map(v=><option key={v}>{v}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-slate-500">必選修
+              <select value={filterType} onChange={e=>setFilterType(e.target.value)} className="mt-1.5 w-full p-2.5 bg-white rounded-xl ring-1 ring-slate-200 text-sm">
+                {COURSE_TYPES.map(v=><option key={v}>{v}</option>)}
+              </select>
+            </label>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-500 mb-2">六大主軸</div>
+            <div className="flex flex-wrap md:flex-col gap-2">
+              {THEMES.map(theme => <button key={theme} onClick={()=>setFilterTheme(theme)}
+                className={`px-4 py-2.5 rounded-xl text-sm transition ${filterTheme===theme?'bg-purple-600 text-white shadow':'bg-white/70 text-slate-600 hover:bg-white'}`}>
+                {theme}
+              </button>)}
+            </div>
+          </div>
+        </div>
+      );
 
       return (
         <div className="min-h-screen flex flex-col">
-          <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-white/50 shadow-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-white/50 shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-3 flex items-center justify-between gap-4">
               <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-tr from-purple-500 to-pink-500 p-2 rounded-xl shadow-inner text-white">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                <div className="bg-gradient-to-tr from-purple-500 to-pink-500 p-2 rounded-xl text-white">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
                 </div>
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-600 tracking-tight leading-none">
-                    課程新視界
-                  </h1>
-                  <span className="text-[10px] sm:text-xs text-slate-500 font-medium tracking-wider mt-1 hidden sm:block">
-                    探索特色課程，開啟學習新可能
-                  </span>
-                </div>
+                <div><h1 className="text-xl sm:text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-700 to-pink-600">課程新視界</h1>
+                <p className="text-[11px] sm:text-xs text-slate-500">國立臺北大學特色課程查詢</p></div>
               </div>
-              <div>
-                {isAdmin ? (
-                  <button onClick={() => setIsAdmin(false)} className="text-sm bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-full font-medium transition">
-                    登出管理員
-                  </button>
-                ) : (
-                  <button onClick={() => setShowLoginModal(true)} className="text-sm text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full font-medium transition">
-                    管理維護
-                  </button>
-                )}
-              </div>
+              <button onClick={()=>setMobileFiltersOpen(v=>!v)} className="md:hidden px-4 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold">篩選課程</button>
             </div>
           </header>
 
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8 flex-grow w-full">
-            {!isAdmin && (
-              <aside className="w-full md:w-1/4 md:sticky md:top-24 h-max space-y-6">
-                <div className="bg-white/70 backdrop-blur-xl p-6 rounded-3xl shadow-sm border border-white">
-                  <h2 className="text-lg font-bold text-slate-800 mb-5 pb-3 border-b border-slate-200/50">探索課程</h2>
-                  <div className="mb-6">
-                    <input
-                      type="text"
-                      placeholder="搜尋課名、教師、標籤..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-4 py-3 bg-white/90 border-0 rounded-2xl ring-1 ring-slate-200 focus:ring-2 focus:ring-purple-400 outline-none text-sm shadow-sm"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase ml-1">單位</label>
-                      <select
-                        value={filterDept === '' ? '全部單位' : filterDept}
-                        onChange={(e) => setFilterDept(e.target.value === '全部單位' ? '' : e.target.value)}
-                        className="w-full p-2.5 bg-white/90 border-0 rounded-xl ring-1 ring-slate-200 text-sm shadow-sm"
-                      >
-                        {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase ml-1">必選修</label>
-                      <select
-                        value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
-                        className="w-full p-2.5 bg-white/90 border-0 rounded-xl ring-1 ring-slate-200 text-sm shadow-sm"
-                      >
-                        {COURSE_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 mb-2 uppercase ml-1">六大主軸</label>
-                    <div className="space-y-2">
-                      {THEMES.map(theme => {
-                        const isSelected = filterTheme === theme;
-                        const themeBtnStyles = {
-                          '全部主軸': 'from-slate-400 to-slate-500',
-                          '科技賦能': 'from-blue-500 to-indigo-500',
-                          '社會共好': 'from-orange-400 to-red-400',
-                          '自主探索': 'from-fuchsia-500 to-purple-600',
-                          '跨域創新': 'from-pink-500 to-rose-500',
-                          '實作體驗': 'from-emerald-400 to-teal-500',
-                          '永續職能': 'from-cyan-500 to-blue-500'
-                        };
-                        return (
-                          <button
-                            key={theme}
-                            onClick={() => setFilterTheme(theme)}
-                            className={`w-full text-left px-5 py-3 rounded-2xl text-sm transition-all duration-300 flex items-center justify-between
-                              ${isSelected ? `bg-gradient-to-r ${themeBtnStyles[theme]} text-white font-medium shadow-md scale-[1.02]` : 'bg-white/50 text-slate-600 hover:bg-white'}`}
-                          >
-                            <span>{theme}</span>
-                            {isSelected && <span className="w-2 h-2 rounded-full bg-white"></span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              </aside>
-            )}
-
-            <section className={`w-full ${isAdmin ? 'md:w-full' : 'md:w-3/4'}`}>
-              {isAdmin ? (
-                <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-6 shadow-sm border border-white">
-                  <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
-                    <h2 className="text-2xl font-bold text-slate-800">資料維護中心 (本機儲存)</h2>
-                    <button onClick={() => { setEditingCourse(null); setShowFormModal(true); }} className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-500 text-white rounded-xl text-sm font-medium shadow-md">
-                      + 新增課程
-                    </button>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[700px]">
-                      <thead>
-                        <tr className="text-slate-500 text-sm border-b border-slate-200">
-                          <th className="p-4">圖片 / 主軸 / 名稱</th>
-                          <th className="p-4">單位 / 教師</th>
-                          <th className="p-4">性質 / 學期 / 學分</th>
-                          <th className="p-4 text-center">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {courses.map(course => (
-                          <tr key={course.id} className="border-b border-slate-100 hover:bg-white/50">
-                            <td className="p-4 flex items-center space-x-3">
-                              <div className="w-12 h-12 rounded-lg bg-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                                {course.images && course.images.length > 0 ? (
-                                  <img src={course.images[0]} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-xs text-slate-400">情境圖</span>
-                                )}
-                              </div>
-                              <div>
-                                <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded mb-0.5">{course.theme}</span>
-                                <div className="font-bold">{course.name}</div>
-                              </div>
-                            </td>
-                            <td className="p-4 text-sm"><div>{course.dept}</div><div className="text-slate-500">{course.teacher}</div></td>
-                            <td className="p-4 text-sm">
-                              <div><span className="font-bold text-purple-600">{course.type || '必修'}</span> / {course.duration || '半學年'}</div>
-                              <div className="text-slate-500">{course.semester} ({course.credits}學分)</div>
-                            </td>
-                            <td className="p-4 text-center space-x-2">
-                              <button onClick={() => { setEditingCourse(course); setShowFormModal(true); }} className="text-indigo-600 font-medium">編輯</button>
-                              <button onClick={() => handleDeleteCourse(course.id)} className="text-rose-500 font-medium">刪除</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="mb-6 px-2 flex justify-between items-center">
-                    <h2 className="text-2xl font-black text-slate-800">{filterTheme} ({filteredCourses.length})</h2>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {filteredCourses.map(course => <CourseCard key={course.id} course={course} />)}
-                  </div>
-                </div>
-              )}
+          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-grow w-full">
+            <section className="mb-7 bg-white/65 border border-white rounded-3xl p-6 sm:p-8 shadow-sm">
+              <p className="text-sm font-bold text-purple-600 mb-2">特色課程探索平台</p>
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">找到適合你的學習新可能</h2>
+              <p className="text-sm sm:text-base text-slate-600">依學期、開課單位、課程性質與六大主軸快速探索特色課程。</p>
             </section>
+
+            {mobileFiltersOpen && <div className="md:hidden mb-6"><FilterPanel /></div>}
+            <div className="flex gap-8">
+              <aside className="hidden md:block w-1/4 sticky top-24 h-max"><FilterPanel /></aside>
+              <section className="w-full md:w-3/4">
+                <div className="mb-5 px-1 flex items-end justify-between gap-3">
+                  <div><h2 className="text-2xl font-black text-slate-800">{filterTheme}</h2><p className="text-sm text-slate-500 mt-1">共 {filteredCourses.length} 門課程</p></div>
+                </div>
+                {loading ? <div className="bg-white/70 rounded-3xl p-10 text-center text-slate-500">課程資料載入中…</div>
+                : loadError ? <div className="bg-rose-50 rounded-3xl p-8 text-center text-rose-700">{loadError}</div>
+                : filteredCourses.length === 0 ? <div className="bg-white/70 rounded-3xl p-10 text-center"><p className="font-bold text-slate-700">找不到符合條件的課程</p><button onClick={clearFilters} className="mt-3 text-purple-600 font-bold">清除篩選條件</button></div>
+                : <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">{filteredCourses.map(course=><CourseCard key={course.id} course={course}/>)}</div>}
+              </section>
+            </div>
           </main>
 
-          {showLoginModal && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
-                <h3 className="text-xl font-bold mb-4">管理員登入</h3>
-                <form onSubmit={handleAdminLogin}>
-                  <input type="password" value={adminPassword} onChange={e => setAdminPassword(e.target.value)} placeholder="請輸入密碼 (admin123)" className="w-full p-3 border rounded-2xl mb-4 outline-none focus:ring-2 focus:ring-purple-400" autoFocus />
-                  {loginError && <p className="text-rose-500 text-sm mb-3">{loginError}</p>}
-                  <button type="submit" className="w-full py-3 bg-purple-600 text-white rounded-2xl font-bold shadow-md">登入後台</button>
-                </form>
-              </div>
+          <footer className="mt-8 border-t border-white/70 bg-white/60">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-sm text-slate-500 flex flex-col sm:flex-row gap-2 sm:justify-between">
+              <div>資料來源：{siteMeta.source}｜資料更新日期：{siteMeta.updatedAt || '未提供'}</div>
+              <div>國立臺北大學教務處</div>
             </div>
-          )}
-
-          {showFormModal && <CourseFormModal course={editingCourse} onClose={() => setShowFormModal(false)} onSave={handleSaveCourse} />}
+          </footer>
         </div>
       );
     }
@@ -514,132 +389,12 @@
             <span className={`text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-700`}>{course.duration || '半學年'}</span>
             <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg ${config.badgeBg} ${config.text}`}>{course.credits}學分</span>
           </div>
-          <p className="text-slate-600 text-sm mb-4 flex-grow">{course.desc}</p>
-        </div>
-      );
-    }
-
-    // 管理表單元件
-    function CourseFormModal({ course, onClose, onSave }) {
-      const [formData, setFormData] = useState(course || {
-        theme: '科技賦能', name: '', dept: '', semester: '114-1', type: '必修', duration: '半學年', teacher: '', credits: '2', tags: '', desc: '', syllabusUrl: '', images: []
-      });
-      const fileInputRef = useRef(null);
-
-      const handleImagesUpload = (e) => {
-        const files = Array.from(e.target.files);
-        if (files.length === 0) return;
-
-        files.forEach(file => {
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const MAX_WIDTH = 800;
-              let scaleSize = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
-              canvas.width = img.width * scaleSize;
-              canvas.height = img.height * scaleSize;
-              const ctx = canvas.getContext('2d');
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-              const compressedBase64 = canvas.toDataURL('image/jpeg', 0.75);
-              
-              setFormData(prev => ({
-                ...prev,
-                images: [...(prev.images || []), compressedBase64]
-              }));
-            };
-            img.src = event.target.result;
-          };
-          reader.readAsDataURL(file);
-        });
-      };
-
-      const removeImage = (indexToRemove) => {
-        setFormData(prev => ({
-          ...prev,
-          images: prev.images.filter((_, idx) => idx !== indexToRemove)
-        }));
-      };
-
-      return (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl p-8 max-w-2xl w-full shadow-2xl my-8">
-            <h2 className="text-2xl font-bold mb-6">{course ? '編輯課程' : '新增課程'}</h2>
-            <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold mb-1">課程名稱</label>
-                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-3 border rounded-xl" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1">主軸</label>
-                  <select value={formData.theme} onChange={e => setFormData({...formData, theme: e.target.value})} className="w-full p-3 border rounded-xl">
-                    {THEMES.filter(t => t !== '全部主軸').map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">開課單位</label>
-                  <input required type="text" value={formData.dept} onChange={e => setFormData({...formData, dept: e.target.value})} className="w-full p-3 border rounded-xl" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-sm font-bold mb-1">性質</label>
-                  <select value={formData.type || '必修'} onChange={e => setFormData({...formData, type: e.target.value})} className="w-full p-3 border rounded-xl">
-                    {COURSE_TYPES.filter(t => t !== '全部').map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">修別</label>
-                  <select value={formData.duration || '半學年'} onChange={e => setFormData({...formData, duration: e.target.value})} className="w-full p-3 border rounded-xl">
-                    {DURATION_TYPES.map(d => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">學期</label>
-                  <input type="text" value={formData.semester} onChange={e => setFormData({...formData, semester: e.target.value})} className="w-full p-3 border rounded-xl" placeholder="114-1" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">學分</label>
-                  <input type="number" value={formData.credits} onChange={e => setFormData({...formData, credits: e.target.value})} className="w-full p-3 border rounded-xl" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold mb-1">授課教師</label>
-                  <input type="text" value={formData.teacher} onChange={e => setFormData({...formData, teacher: e.target.value})} className="w-full p-3 border rounded-xl" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold mb-1">課綱網址</label>
-                  <input type="url" value={formData.syllabusUrl || ''} onChange={e => setFormData({...formData, syllabusUrl: e.target.value})} placeholder="https://..." className="w-full p-3 border rounded-xl text-blue-600" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold mb-1">成果照片上傳 (可選多張)</label>
-                <div className="flex flex-wrap items-center gap-3 mb-2">
-                  {formData.images && formData.images.map((imgSrc, idx) => (
-                    <div key={idx} className="relative w-24 h-20 rounded-xl overflow-hidden border shadow-sm group">
-                      <img src={imgSrc} className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => removeImage(idx)} className="absolute inset-0 bg-red-500/60 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition">刪除</button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => fileInputRef.current.click()} className="px-5 py-6 bg-slate-50 border-2 border-dashed border-slate-300 hover:border-purple-400 rounded-xl text-slate-500 text-sm font-bold flex flex-col items-center justify-center">
-                    <span>+ 新增照片</span>
-                  </button>
-                </div>
-                <input type="file" accept="image/*" multiple ref={fileInputRef} onChange={handleImagesUpload} className="hidden" />
-              </div>
-              <div><label className="block text-sm font-bold mb-1">課程簡介</label><textarea rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} className="w-full p-3 border rounded-xl"></textarea></div>
-              <div className="flex justify-end space-x-3 pt-4">
-                <button type="button" onClick={onClose} className="px-6 py-3 border rounded-xl font-bold">取消</button>
-                <button type="submit" className="px-8 py-3 bg-purple-600 text-white rounded-xl font-bold">儲存</button>
-              </div>
-            </form>
-          </div>
+          <p className="text-slate-600 text-sm mb-4 flex-grow leading-relaxed">{course.desc}</p>
+          {course.syllabusUrl && (
+            <a href={course.syllabusUrl} target="_blank" rel="noreferrer" className="mt-auto inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold transition">
+              查看課程資訊／課綱 <span className="ml-1">↗</span>
+            </a>
+          )}
         </div>
       );
     }
