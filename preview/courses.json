@@ -2,24 +2,15 @@
   "updatedAt": "2026-10-03",
   "source": "國立臺北大學教務處",
   "courses": [
-    {
-      "id": "1",
-      "theme": "科技賦能",
-      "name": "人工智慧與跨域應用實作",
-      "dept": "資訊工程學系",
-      "teacher": "張教授",
-      "semester": "114-1",
-      "type": "選修",
-      "duration": "半學年",
-      "credits": "3",
-      "tags": [
-        "AI",
-        "Python",
-        "跨域共授"
-      ],
-      "desc": "結合AI核心邏輯與各學門領域應用，帶領學生從零開始動手打造智慧專題。",
-      "syllabusUrl": "https://ntpu.edu.tw",
-      "images": []
-    }
+    {"theme":"永續職能","name":"管理實務專題研討","dept":"企業管理學系","semester":"114-1","type":"必修","duration":"半學年","teacher":"企管系教師群","credits":"2","tags":"","desc":"透過分組討論與專題研究，培養學生團隊合作、問題分析及財務管理實務議題之研究與整合能力。","syllabusUrl":"","id":"1791015103203","images":[]},
+    {"theme":"實作體驗","name":"綠木家具設計實務","dept":"通識中心","semester":"115-1","type":"必修","duration":"半學年","teacher":"趙南開","credits":"3","tags":"","desc":"由家具研究延伸至實際製作，完成具設計概念的木工作品。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=U4132&g_year=114&g_term=1&show_info=part","id":"1791015005985","images":[]},
+    {"theme":"自主探索","name":"數位自學課程","dept":"各院系所","semester":"111-1~","type":"選修","duration":"半學年","teacher":"線上課程","credits":"2","tags":"","desc":"引進國際線上課程並建立學分認列，支持學生彈性自主跨域學習。\n由各開課單位指定課程審查及學分認列。\n每門課程1至3學分，依各課程核定結果辦理；學生最多可認列6學分畢業學分。","syllabusUrl":"https://sites.google.com/gm.ntpu.edu.tw/ntpucloudschool/%E6%95%B8%E4%BD%8D%E8%87%AA%E5%AD%B8/%E6%A0%B8%E5%8F%AF%E8%AA%B2%E7%A8%8B?authuser=0","id":"1791014929485","images":[]},
+    {"theme":"跨域創新","name":"國際學術專題交流與實踐（一）、（二）","dept":"歷史系","semester":"114-1,114-2","type":"選修","duration":"半學年","teacher":"蔡龍保,簡佑丞,鄭仲棠","credits":"2","tags":"","desc":"與日韓大學進行雙向研修、英文學術報告及歷史文化交流。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=M5099&g_year=114&g_term=1&show_info=part","id":"1791014805571","images":[]},
+    {"theme":"跨域創新","name":"旅行、文學與地理","dept":"通識中心","semester":"114-1","type":"通識","duration":"半學年","teacher":"蔡怡玟","credits":"2","tags":"","desc":"結合文學、地理、科技與實地探索，強化情境式學習。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=U4194&g_year=114&g_term=1&show_info=part","id":"1791014721378","images":[]},
+    {"theme":"實作體驗","name":"航空攝影測量","dept":"不動產與城鄉環境學系","semester":"114-2","type":"選修","duration":"半學年","teacher":"黃金聰","credits":"3","tags":"","desc":"結合航空與近景攝影測量理論及實務操作，透過航照立體影像實作，培養宗地測量、地面三維建模與室內環景產製能力。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=U3757&g_year=114&g_term=2&show_info=part","id":"1791014631569","images":[]},
+    {"theme":"實作體驗","name":"校園植物認識","dept":"通識中心","semester":"114-2","type":"通識","duration":"半學年","teacher":"陳湘繁","credits":"2","tags":"","desc":"透過校園戶外觀察與數位分享認識植物、生態與環境變遷。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=U4152&g_year=114&g_term=1&show_info=part","id":"1791014529137","images":[]},
+    {"theme":"社會共好","name":"藝術輔療與高齡社會服務","dept":"社工系,通識中心","semester":"114-1,115-1","type":"選修","duration":"半學年","teacher":"劉素芬,林子晴","credits":"3","tags":"","desc":"結合藝術輔療、高齡服務與社區長者互動，培養社會實踐能力。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=U2018&g_year=115&g_term=1&show_info=part","id":"1791014005884","images":[]},
+    {"theme":"科技賦能","name":"AI與法律","dept":"法律學系,資工系","semester":"115-1","type":"選修","duration":"半學年","teacher":"戴志華,李榮耕","credits":"3","tags":"","desc":"法律與資工跨域合作，將AI與NLP導入法律專業應用。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=U2100&g_year=115&g_term=1&show_info=part","id":"1791013728506","images":[]},
+    {"id":"1","theme":"科技賦能","name":"西方古典音樂賞析與AI實作","dept":"通識中心","teacher":"楊喨智,林子晴","semester":"114-1,115-1","type":"通識","duration":"半學年","credits":"3","tags":"AI、Python、跨域共授","desc":"結合AI核心邏輯與各學門領域應用，帶領學生從零開始動手打造智慧專題。","syllabusUrl":"https://sea.cc.ntpu.edu.tw/pls/dev_stud/course_query.queryGuide?g_serial=U4146&g_year=115&g_term=1&show_info=part","images":[]}
   ]
 }
