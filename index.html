@@ -296,9 +296,18 @@
               </div>
               <div>
                 {isAdmin ? (
-                  <button onClick={() => setIsAdmin(false)} className="text-sm bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-full font-medium transition">
-                    登出管理員
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => {
+                      const saved = localStorage.getItem('ntpu_courses_local_v5');
+                      const data = saved ? JSON.parse(saved) : courses;
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = 'ntpu-courses-export.json';
+                      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                    }} className="text-sm bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-4 py-2 rounded-full font-medium transition">匯出課程資料</button>
+                    <button onClick={() => setIsAdmin(false)} className="text-sm bg-rose-100 hover:bg-rose-200 text-rose-700 px-4 py-2 rounded-full font-medium transition">登出管理員</button>
+                  </div>
                 ) : (
                   <button onClick={() => setShowLoginModal(true)} className="text-sm text-slate-600 hover:text-purple-600 hover:bg-purple-50 px-4 py-2 rounded-full font-medium transition">
                     管理維護
