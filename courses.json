@@ -1,0 +1,25 @@
+{
+  "updatedAt": "2026-10-03",
+  "source": "國立臺北大學教務處",
+  "courses": [
+    {
+      "id": "1",
+      "theme": "科技賦能",
+      "name": "人工智慧與跨域應用實作",
+      "dept": "資訊工程學系",
+      "teacher": "張教授",
+      "semester": "114-1",
+      "type": "選修",
+      "duration": "半學年",
+      "credits": "3",
+      "tags": [
+        "AI",
+        "Python",
+        "跨域共授"
+      ],
+      "desc": "結合AI核心邏輯與各學門領域應用，帶領學生從零開始動手打造智慧專題。",
+      "syllabusUrl": "https://ntpu.edu.tw",
+      "images": []
+    }
+  ]
+}
